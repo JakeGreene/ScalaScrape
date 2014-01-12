@@ -7,8 +7,6 @@ import Scraper._
 
 object Scrape extends App {
   val site = new URL("http://www.google.ca/search?q=Hello+World")
-  open(site) select("#res li.g h3.r a") foreach { element =>
-    val link = element.select("a[href]").attr("abs:href")
-    println(link)
-  }
+  //open(site).select("#res li.g h3.r a").extract(links).foreach(println)
+  open(site) select("#res li.g h3.r a") extract links foreach(println)
 }
