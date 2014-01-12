@@ -6,7 +6,10 @@ import org.jsoup.nodes.Element
 import org.jsoup.Jsoup
 
 object Scraper {
-  def open(source: URL): ScrapeSelector = new DefaultSelector(new WebPage(source))
+  def open(source: URL): ScrapeSelector = new DefaultSelector(load(source))
+  private def load(source: URL): Element = {
+    Jsoup.connect(source.toString()).userAgent("Mozilla").followRedirects(true).timeout(0).get
+  }
 }
 
 trait ScrapeSelector {
@@ -14,39 +17,12 @@ trait ScrapeSelector {
   /**
    * Uses the Jsoup selector syntax for selecting elements
    */
-  def select(query: String): ScrapeTransformer
+  def select(query: String): Seq[Element]
 }
 
-private class DefaultSelector(page: WebPage) extends ScrapeSelector {
+private class DefaultSelector(root: Element) extends ScrapeSelector {
   
-  def select(query: String): ScrapeTransformer = {
-    return new DefaultTransformer(page, query)
-  }
-}
-
-trait ScrapeTransformer {
-  def foreach(func: Element => Unit): Unit
-  def map[A](func: Element => A): Seq[A]
-  def get(): Seq[Element]
-}
-
-private class DefaultTransformer(page: WebPage, query: String) extends ScrapeTransformer {
-  def foreach(func: Element => Unit) {
-    val elements = select(query)
-    elements.foreach(func)
-  }
-  
-  def map[A](func: Element => A): Seq[A] = {
-    val elements = select(query)
-    return elements.map(func)
-  }
-  
-  def get(): Seq[Element] = {
-    return select(query)
-  }
-  
-  private def select(query: String): Seq[Element] = {
-    val doc = Jsoup.connect(page.url.toString()).userAgent("Mozilla").followRedirects(true).timeout(0).get
-    return doc.select(query)
+  def select(query: String): Seq[Element] = {
+    root.select(query)
   }
 }
