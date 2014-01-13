@@ -15,6 +15,11 @@ object Scraper {
    */
   def open(source: URL): ScrapeSelector = new DefaultSelector(load(source))
   
+  /**
+   * Parse the given HTML and provide it to a Selector
+   */
+  def parse(html: String): ScrapeSelector = new DefaultSelector(Jsoup.parse(html))
+  
   /*
    * Load the given URL into memory
    */
@@ -34,6 +39,10 @@ object Scraper {
     val link = element.select("a[href]").attr("abs:href")
     val url = new URL(link)
     Link(element.text, url)
+  }
+  
+  def text(element: Element): String = {
+    element.text
   }
   
 }
