@@ -1,12 +1,11 @@
 package ca.jakegreene.scrape
 
 import java.net.URL
-
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
-
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
+import scala.xml.Elem
 
 object Scraper {
   
@@ -19,6 +18,11 @@ object Scraper {
    * Parse the given HTML and provide it to a Selector
    */
   def parse(html: String): ScrapeSelector = new DefaultSelector(Jsoup.parse(html))
+  
+  /**
+   * Parse the given XHTML and provide it to a Selector
+   */
+  def parse(xml: Elem): ScrapeSelector = new DefaultSelector(Jsoup.parse(xml.toString()))
   
   /*
    * Load the given URL into memory

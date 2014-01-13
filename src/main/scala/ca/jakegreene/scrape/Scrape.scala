@@ -9,5 +9,7 @@ object Scrape extends App {
   val site = new URL("http://www.google.ca/search?q=Hello+World")
   //open(site) select("#res li.g h3.r a") extract links foreach(println)
   val html = "<html><body><p>Hello World!</p><p>Hello, World!</p></body></html>"
-  parse(html) select("p") extract text foreach(println)
+  //parse(html) select("p") extract text foreach(println)
+  val xhtml = <html><body><p>Hello World!</p><p>Hello, World!</p></body></html>
+  parse(xhtml) select("p") extract text foreach(println)
 }
