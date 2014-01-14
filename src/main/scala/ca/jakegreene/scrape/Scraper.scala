@@ -12,12 +12,12 @@ import scala.concurrent.ExecutionContext
 
 object Scraper {
   
-  type FutureWork[A] = Future[Seq[A]]
+  trait Composition[F[_], G[_]] { type T[A] = F[G[A]] }
   
   /**
    * Connect to the given URL and load the page
    */
-  def open(source: URL)(implicit ctx: ExecutionContext): ScrapeSelector[FutureWork] = {
+  def open(source: URL)(implicit ctx: ExecutionContext): ScrapeSelector[Composition[Future, Seq]#T] = {
     new FutureSelector(Future{load(source)})
   }
   
@@ -56,7 +56,6 @@ object Scraper {
   
 }
 
-import Scraper.FutureWork
 trait ScrapeSelector[T[_]] {
   
   /**
@@ -72,7 +71,8 @@ private class DefaultSelector(root: Element) extends ScrapeSelector[Seq] {
   }
 }
 
-private class FutureSelector(root: Future[Element])(implicit ctx: ExecutionContext) extends ScrapeSelector[FutureWork] {
+import Scraper.Composition
+private class FutureSelector(root: Future[Element])(implicit ctx: ExecutionContext) extends ScrapeSelector[Composition[Future, Seq]#T] {
   def select(query: String): FutureExtractor = {
     val elements: Future[Seq[Element]] = root map(element => element.select(query))
     new FutureExtractor(elements)
@@ -91,7 +91,7 @@ class Extractor(elements: Seq[Element]) extends ScrapeExtractor[Seq] {
 }
 
 class FutureExtractor(elements: Future[Seq[Element]])(implicit ctx: ExecutionContext) 
-  extends ScrapeExtractor[FutureWork] {
+  extends ScrapeExtractor[Composition[Future, Seq]#T] {
   def extract[A](func: Element => A): Future[Seq[A]] = {
     elements.map(seq => seq map(func))
   }
