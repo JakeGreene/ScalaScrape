@@ -3,26 +3,33 @@ package ca.jakegreene.scrape
 import java.net.URL
 import scala.collection.JavaConversions.asScalaBuffer
 import scala.language.implicitConversions
+import scala.language.higherKinds
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Element
 import scala.xml.Elem
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 object Scraper {
+  
+  type FutureWork[A] = Future[Seq[A]]
   
   /**
    * Connect to the given URL and load the page
    */
-  def open(source: URL): ScrapeSelector = new DefaultSelector(load(source))
+  def open(source: URL)(implicit ctx: ExecutionContext): ScrapeSelector[FutureWork] = {
+    new FutureSelector(Future{load(source)})
+  }
   
   /**
    * Parse the given HTML and provide it to a Selector
    */
-  def parse(html: String): ScrapeSelector = new DefaultSelector(Jsoup.parse(html))
+  def parse(html: String): ScrapeSelector[Seq] = new DefaultSelector(Jsoup.parse(html))
   
   /**
    * Parse the given XHTML and provide it to a Selector
    */
-  def parse(xml: Elem): ScrapeSelector = new DefaultSelector(Jsoup.parse(xml.toString()))
+  def parse(xml: Elem): ScrapeSelector[Seq] = new DefaultSelector(Jsoup.parse(xml.toString()))
   
   /*
    * Load the given URL into memory
@@ -30,8 +37,6 @@ object Scraper {
   private def load(source: URL): Element = {
     Jsoup.connect(source.toString()).userAgent("Mozilla").followRedirects(true).timeout(0).get
   }
-  
-  implicit def extractor2Elements(s: ScrapeExtractor): Seq[Element] = s.elements
   
   case class Link(title: String, href: URL)
   /**
@@ -51,24 +56,43 @@ object Scraper {
   
 }
 
-trait ScrapeSelector {
+import Scraper.FutureWork
+trait ScrapeSelector[T[_]] {
   
   /**
    * Uses the Jsoup selector syntax for selecting elements
    */
-  def select(query: String): ScrapeExtractor
+  def select(query: String): ScrapeExtractor[T]
 }
 
-private class DefaultSelector(root: Element) extends ScrapeSelector {
+private class DefaultSelector(root: Element) extends ScrapeSelector[Seq] {
   
-  def select(query: String): ScrapeExtractor = {
-    new ScrapeExtractor(root.select(query))
+  def select(query: String): Extractor = {
+    new Extractor(root.select(query))
   }
 }
 
-class ScrapeExtractor(val elements: Seq[Element]) {
+private class FutureSelector(root: Future[Element])(implicit ctx: ExecutionContext) extends ScrapeSelector[FutureWork] {
+  def select(query: String): FutureExtractor = {
+    val elements: Future[Seq[Element]] = root map(element => element.select(query))
+    new FutureExtractor(elements)
+  }
+}
+
+trait ScrapeExtractor[T[_]] {
   
+  def extract[A](func: Element => A): T[A]
+}
+
+class Extractor(elements: Seq[Element]) extends ScrapeExtractor[Seq] { 
   def extract[A](func: Element => A): Seq[A] = {
-    elements map(func)
+    elements.map(func)
+  }
+}
+
+class FutureExtractor(elements: Future[Seq[Element]])(implicit ctx: ExecutionContext) 
+  extends ScrapeExtractor[FutureWork] {
+  def extract[A](func: Element => A): Future[Seq[A]] = {
+    elements.map(seq => seq map(func))
   }
 }
