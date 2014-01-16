@@ -1,8 +1,7 @@
 ScalaScrape
 ===========
 
-An HTML scrapper that wraps Jsoup, adding a fluent DSL. Scraping Websites will create a Future[Seq[Element]]
-
+An HTML scrapper that wraps Jsoup, adding a fluent DSL.
 ```scala
 /* Open the given site, select all of the 'a' elements,
  * extract the links (url and name) from the elements 
@@ -14,8 +13,7 @@ open(site) select("a") extract links foreach(println)
 val futureLengths = open(sites) select("#class p") extract text map(_.length)
 ```
 
-The DSL can also be used to scrape HTML and XHTML, producing a Seq[Element]
-
+The DSL can also be used to scrape HTML and XHTML
 ```scala
 // Parses HTML strings
 val html = "<html><body><p>Hello, World!</p></body></html>"
