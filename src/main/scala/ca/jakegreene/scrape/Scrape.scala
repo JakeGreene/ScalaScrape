@@ -5,10 +5,7 @@ import java.net.URL
 import scala.util.Failure
 import scala.util.Success
 
-import Scraper.links
-import Scraper.open
-import Scraper.parse
-import Scraper.text
+import Scraper._
 import akka.actor.ActorSystem
 
 object Scrape extends App {
@@ -36,4 +33,8 @@ object Scrape extends App {
     case Success(links) => links foreach(println)
     case Failure(ex) => println(ex)
   }
+  
+  // Create a function URL => Link
+  val findLinks = givenUrl select("#res li.g h3.r a") extract links
+  findLinks(site) foreach(println)
 }

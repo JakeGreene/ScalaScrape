@@ -32,6 +32,10 @@ object Scraper {
     new FutureSelector(Future.sequence(futures))
   }
   
+  def givenUrl(): ScrapeSelector[({ type x[a] = Function1[URL, Seq[a]]})#x] = {
+    new FuncSelector(load)
+  }
+  
   /**
    * Parse the given HTML and provide it to a Selector
    */
@@ -89,6 +93,12 @@ private class FutureSelector(root: Future[Seq[Element]])(implicit ctx: Execution
   }
 }
 
+private class FuncSelector[E](parse: E => Element) extends ScrapeSelector[({ type x[a] = Function1[E, Seq[a]]})#x] {
+  def select(query: String): ScrapeFunc[E] = {
+    new ScrapeFunc(in => parse(in).select(query))
+  }
+}
+
 trait ScrapeExtractor[T[_]] { 
   def extract[A](func: Element => A): T[A]
 }
@@ -103,5 +113,11 @@ class FutureExtractor(elements: Future[Seq[Element]])(implicit ctx: ExecutionCon
     extends ScrapeExtractor[Scraper.Composition[Future, Seq]#T] {
   def extract[A](func: Element => A): Future[Seq[A]] = {
     elements.map(seq => seq map(func))
+  }
+}
+
+private class ScrapeFunc[E](selector: E => Seq[Element]) extends ScrapeExtractor[({ type x[a] = Function1[E, Seq[a]]})#x]{
+  def extract[A](func: Element => A): Function1[E, Seq[A]] = {
+    return (in: E) => selector(in) map(func)
   }
 }
