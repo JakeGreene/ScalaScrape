@@ -15,6 +15,7 @@ import org.jsoup.nodes.Element
 object Scraper {
   
   trait Composition[F[_], G[_]] { type T[A] = F[G[A]] }
+  trait ExtractorFunc[E] { type F[a] = Function1[E, Seq[a]] }
   
   /**
    * Connect to the given URL and load the page
@@ -32,7 +33,7 @@ object Scraper {
     new FutureSelector(Future.sequence(futures))
   }
   
-  def givenUrl(): ScrapeSelector[({ type x[a] = Function1[URL, Seq[a]]})#x] = {
+  def givenUrl(): ScrapeSelector[ExtractorFunc[URL]#F] = {
     new FuncSelector(load)
   }
   
@@ -93,7 +94,7 @@ private class FutureSelector(root: Future[Seq[Element]])(implicit ctx: Execution
   }
 }
 
-private class FuncSelector[E](parse: E => Element) extends ScrapeSelector[({ type x[a] = Function1[E, Seq[a]]})#x] {
+private class FuncSelector[E](parse: E => Element) extends ScrapeSelector[Scraper.ExtractorFunc[E]#F] {
   def select(query: String): ScrapeFunc[E] = {
     new ScrapeFunc(in => parse(in).select(query))
   }
@@ -116,7 +117,7 @@ class FutureExtractor(elements: Future[Seq[Element]])(implicit ctx: ExecutionCon
   }
 }
 
-private class ScrapeFunc[E](selector: E => Seq[Element]) extends ScrapeExtractor[({ type x[a] = Function1[E, Seq[a]]})#x]{
+private class ScrapeFunc[E](selector: E => Seq[Element]) extends ScrapeExtractor[Scraper.ExtractorFunc[E]#F]{
   def extract[A](func: Element => A): Function1[E, Seq[A]] = {
     return (in: E) => selector(in) map(func)
   }
